@@ -1,0 +1,21 @@
+{
+  "name": "autonomous-enterprise",
+  "version": "0.1.0",
+  "description": "Self-Monetizing AI Agent Swarm - Autonomous Enterprise System",
+  "private": true,
+  "workspaces": [
+    "workers/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:worker": "pnpm --filter @ae/temporal-worker dev",
+    "dev:api": "cd apps/api && uvicorn ae_api.main:app --reload",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
