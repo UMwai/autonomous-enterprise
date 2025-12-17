@@ -141,9 +141,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=...
 
-# Model Preferences (Premium models - heavily subsidized)
+# Model Preferences (Premium models only)
 TIER1_MODEL=claude-opus-4-5-20251101
-TIER2_MODEL=gpt-5.2-xhigh
+TIER2_MODEL=gpt-5.2
 TIER3_MODEL=gemini-3-pro-preview
 
 # Budget Settings

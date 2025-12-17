@@ -10,17 +10,9 @@ class OpenAIProvider(BaseProvider):
     """OpenAI LLM provider."""
 
     # Pricing per 1M tokens (input, output) in USD
-    # Premium models enabled - heavily subsidized for maximum intelligence
+    # Only GPT-5.2 supported
     PRICING = {
-        "gpt-5.2-xhigh": (20.0, 80.0),    # GPT-5.2 xhigh - maximum capability
-        "gpt-5.2": (15.0, 60.0),           # GPT-5.2 standard
-        "o3": (30.0, 120.0),               # O3 reasoning model
-        "o4-mini": (5.0, 20.0),            # O4-mini reasoning
-        "gpt-4o": (2.5, 10.0),
-        "gpt-4o-mini": (0.15, 0.6),
-        "gpt-4-turbo": (10.0, 30.0),
-        "gpt-4": (30.0, 60.0),
-        "gpt-3.5-turbo": (0.5, 1.5),
+        "gpt-5.2": (15.0, 60.0),  # GPT-5.2
     }
 
     def __init__(self, settings: Settings):

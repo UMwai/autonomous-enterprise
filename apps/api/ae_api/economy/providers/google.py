@@ -10,14 +10,9 @@ class GoogleProvider(BaseProvider):
     """Google Gemini LLM provider."""
 
     # Pricing per 1M tokens (input, output) in USD
-    # Premium models enabled - heavily subsidized for maximum intelligence
+    # Only Gemini 3 Pro Preview supported
     PRICING = {
-        "gemini-3-pro-preview": (10.0, 40.0),   # Gemini 3 Pro - maximum capability
-        "gemini-2.5-pro": (5.0, 20.0),          # Gemini 2.5 Pro
-        "gemini-2.5-flash": (0.5, 2.0),         # Gemini 2.5 Flash
-        "gemini-1.5-pro": (1.25, 5.0),
-        "gemini-1.5-flash": (0.075, 0.3),
-        "gemini-1.0-pro": (0.5, 1.5),
+        "gemini-3-pro-preview": (10.0, 40.0),  # Gemini 3 Pro Preview
     }
 
     def __init__(self, settings: Settings):

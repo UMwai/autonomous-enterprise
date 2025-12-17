@@ -10,15 +10,9 @@ class AnthropicProvider(BaseProvider):
     """Anthropic LLM provider."""
 
     # Pricing per 1M tokens (input, output) in USD
-    # Premium models enabled - heavily subsidized for maximum intelligence
+    # Only Claude Opus 4.5 supported
     PRICING = {
-        "claude-opus-4-5-20251101": (15.0, 75.0),  # Opus 4.5 - maximum capability
-        "claude-sonnet-4-20250514": (3.0, 15.0),   # Sonnet 4
-        "claude-3-5-sonnet-20241022": (3.0, 15.0),
-        "claude-3-5-haiku-20241022": (0.8, 4.0),
-        "claude-3-opus-20240229": (15.0, 75.0),
-        "claude-3-sonnet-20240229": (3.0, 15.0),
-        "claude-3-haiku-20240307": (0.25, 1.25),
+        "claude-opus-4-5-20251101": (15.0, 75.0),  # Claude Opus 4.5
     }
 
     def __init__(self, settings: Settings):

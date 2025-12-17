@@ -46,12 +46,11 @@ class RoutingDecision(BaseModel):
 class ModelRouter:
     """Routes tasks to appropriate models based on complexity and cost."""
 
-    # Model tier configurations (Premium models - heavily subsidized)
+    # Model tier configurations (Premium models only - no fallbacks)
     TIER_CONFIG = {
         ModelTier.TIER1_ARCHITECT: {
             "models": [
                 {"provider": "anthropic", "model": "claude-opus-4-5-20251101"},
-                {"provider": "openai", "model": "gpt-5.2-xhigh"},
             ],
             "use_cases": [
                 "Architecture design and system planning",
@@ -63,8 +62,7 @@ class ModelRouter:
         },
         ModelTier.TIER2_BUILDER: {
             "models": [
-                {"provider": "openai", "model": "gpt-5.2-xhigh"},
-                {"provider": "google", "model": "gemini-3-pro-preview"},
+                {"provider": "openai", "model": "gpt-5.2"},
             ],
             "use_cases": [
                 "Feature implementation",
@@ -77,7 +75,6 @@ class ModelRouter:
         ModelTier.TIER3_INTERN: {
             "models": [
                 {"provider": "google", "model": "gemini-3-pro-preview"},
-                {"provider": "anthropic", "model": "claude-opus-4-5-20251101"},
             ],
             "use_cases": [
                 "Code formatting and linting",
@@ -90,22 +87,16 @@ class ModelRouter:
     }
 
     # Pricing per 1M tokens (input, output) in USD
-    # Note: Premium models - heavily subsidized for maximum intelligence
+    # Only premium models supported
     PRICING = {
         "anthropic": {
-            "claude-opus-4-5-20251101": (15.0, 75.0),  # Opus 4.5 - maximum capability
-            "claude-3-5-sonnet-20241022": (3.0, 15.0),
-            "claude-3-5-haiku-20241022": (0.8, 4.0),
+            "claude-opus-4-5-20251101": (15.0, 75.0),  # Claude Opus 4.5
         },
         "openai": {
-            "gpt-5.2-xhigh": (20.0, 80.0),  # GPT-5.2 xhigh - maximum capability
-            "gpt-4o": (2.5, 10.0),
-            "gpt-4o-mini": (0.15, 0.6),
+            "gpt-5.2": (15.0, 60.0),  # GPT-5.2
         },
         "google": {
-            "gemini-3-pro-preview": (10.0, 40.0),  # Gemini 3 Pro - maximum capability
-            "gemini-1.5-pro": (1.25, 5.0),
-            "gemini-1.5-flash": (0.075, 0.3),
+            "gemini-3-pro-preview": (10.0, 40.0),  # Gemini 3 Pro Preview
         },
     }
 

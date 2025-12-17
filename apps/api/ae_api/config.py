@@ -38,10 +38,10 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr | None = None
     google_api_key: SecretStr | None = None
 
-    # Model Router Defaults (Premium models - subsidized)
-    tier1_model: str = "claude-opus-4-5-20251101"  # Maximum intelligence
-    tier2_model: str = "gpt-5.2-xhigh"  # High intelligence
-    tier3_model: str = "gemini-3-pro-preview"  # Fast, high quality
+    # Model Router Defaults (Premium models only)
+    tier1_model: str = "claude-opus-4-5-20251101"  # Claude Opus 4.5
+    tier2_model: str = "gpt-5.2"  # GPT-5.2
+    tier3_model: str = "gemini-3-pro-preview"  # Gemini 3 Pro Preview
 
     # Cost Budgets (per run, in USD)
     default_run_budget: float = 10.0

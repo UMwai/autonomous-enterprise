@@ -27,10 +27,10 @@ Analyzes incoming prompts to determine:
 
 Routes tasks to appropriate models and manages costs:
 
-**Model Tiers (Premium - heavily subsidized):**
-- **TIER1 (Architect)**: Claude Opus 4.5, GPT-5.2 xhigh - Maximum intelligence
-- **TIER2 (Builder)**: GPT-5.2 xhigh, Gemini 3 Pro - High intelligence
-- **TIER3 (Intern)**: Gemini 3 Pro, Claude Opus 4.5 - Fast, high quality
+**Model Tiers (Premium models only - no fallbacks):**
+- **TIER1 (Architect)**: Claude Opus 4.5 - Maximum intelligence
+- **TIER2 (Builder)**: GPT-5.2 - High capability
+- **TIER3 (Intern)**: Gemini 3 Pro Preview - Fast, high quality
 
 **Features:**
 - Automatic tier selection based on classification
@@ -41,10 +41,10 @@ Routes tasks to appropriate models and manages costs:
 
 ### 3. Provider Implementations (`providers/`)
 
-Unified interface for multiple LLM providers (Premium models):
-- **OpenAI**: GPT-5.2 xhigh, O3, O4-mini
-- **Anthropic**: Claude Opus 4.5, Claude Sonnet 4
-- **Google**: Gemini 3 Pro Preview, Gemini 2.5
+Unified interface for premium LLM providers only:
+- **Anthropic**: Claude Opus 4.5
+- **OpenAI**: GPT-5.2
+- **Google**: Gemini 3 Pro Preview
 
 Each provider implements:
 - `complete()`: Generate text completion
@@ -95,8 +95,7 @@ Get information about all available tiers.
   "TIER1": {
     "tier": "TIER1",
     "models": [
-      {"provider": "anthropic", "model": "claude-opus-4-5-20251101"},
-      {"provider": "openai", "model": "gpt-5.2-xhigh"}
+      {"provider": "anthropic", "model": "claude-opus-4-5-20251101"}
     ],
     "use_cases": [
       "Architecture design and system planning",
@@ -256,9 +255,9 @@ ANTHROPIC_API_KEY=sk-ant-...
 OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=...
 
-# Default Models per Tier (Premium - heavily subsidized)
+# Default Models per Tier (Premium models only)
 TIER1_MODEL=claude-opus-4-5-20251101
-TIER2_MODEL=gpt-5.2-xhigh
+TIER2_MODEL=gpt-5.2
 TIER3_MODEL=gemini-3-pro-preview
 
 # Budget Settings
@@ -269,9 +268,9 @@ MAX_RUN_BUDGET=100.0
 ## Cost Optimization Strategies
 
 ### 1. Automatic Tier Selection
-The classifier routes all tasks to premium models for maximum intelligence:
-- Code formatting → Gemini 3 Pro ($10.0 per 1M input tokens)
-- Feature implementation → GPT-5.2 xhigh ($20.0 per 1M input tokens)
+The classifier routes tasks to the appropriate premium model:
+- Code formatting → Gemini 3 Pro Preview ($10.0 per 1M input tokens)
+- Feature implementation → GPT-5.2 ($15.0 per 1M input tokens)
 - Architecture design → Claude Opus 4.5 ($15.0 per 1M input tokens)
 
 ### 2. Budget Enforcement

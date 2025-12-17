@@ -132,20 +132,20 @@ class TestModelRouter:
 
     def test_get_model_for_tier(self, router):
         """Test getting models for each tier."""
-        # TIER1
+        # TIER1 - Claude Opus 4.5 only
         provider, model = router.get_model_for_tier(ModelTier.TIER1_ARCHITECT)
-        assert provider in ["anthropic", "openai"]
-        assert model in ["claude-opus-4-5-20251101", "gpt-5.2-xhigh"]
+        assert provider == "anthropic"
+        assert model == "claude-opus-4-5-20251101"
 
-        # TIER2
+        # TIER2 - GPT-5.2 only
         provider, model = router.get_model_for_tier(ModelTier.TIER2_BUILDER)
-        assert provider in ["google", "openai"]
-        assert model in ["gemini-3-pro-preview", "gpt-5.2-xhigh"]
+        assert provider == "openai"
+        assert model == "gpt-5.2"
 
-        # TIER3
+        # TIER3 - Gemini 3 Pro Preview only
         provider, model = router.get_model_for_tier(ModelTier.TIER3_INTERN)
-        assert provider in ["google", "anthropic"]
-        assert model in ["gemini-3-pro-preview", "claude-opus-4-5-20251101"]
+        assert provider == "google"
+        assert model == "gemini-3-pro-preview"
 
     def test_estimate_cost(self, router):
         """Test cost estimation."""
@@ -296,13 +296,13 @@ class TestProviders:
 
         provider = OpenAIProvider(mock_settings)
 
-        # Test pricing (premium model)
-        input_price, output_price = provider.get_pricing("gpt-5.2-xhigh")
+        # Test pricing (GPT-5.2)
+        input_price, output_price = provider.get_pricing("gpt-5.2")
         assert input_price > 0
         assert output_price > 0
 
-        # Test cost calculation (premium model)
-        cost = provider.calculate_cost(1000, 500, "gpt-5.2-xhigh")
+        # Test cost calculation (GPT-5.2)
+        cost = provider.calculate_cost(1000, 500, "gpt-5.2")
         assert cost > 0
 
     @pytest.mark.asyncio
