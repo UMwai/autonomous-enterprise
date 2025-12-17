@@ -50,9 +50,9 @@ Autonomous Enterprise is a "Harness" - a comprehensive, automated infrastructure
 - **Living Spec Protocol**: CLAUDE.md/GEMINI.md for persistent context
 
 ### 4. Cognitive Economy (Model Router)
-- **Tier 1 (Architect)**: Claude Sonnet, GPT-4o for architecture and complex debugging
-- **Tier 2 (Builder)**: Gemini Pro for implementation and tests
-- **Tier 3 (Intern)**: Gemini Flash, local models for formatting and linting
+- **Tier 1 (Architect)**: Claude Opus 4.5 for architecture and complex debugging
+- **Tier 2 (Builder)**: GPT-5.2 for implementation and tests
+- **Tier 3 (Intern)**: Gemini 3 Pro Preview for fast operations
 
 ### 5. Infrastructure & Safety
 - **E2B Sandbox**: Isolated execution environment with resource limits
@@ -144,13 +144,22 @@ autonomous-enterprise/
 
 ## Configuration
 
-### Model Routing Tiers
+### Model Routing Tiers (Premium Only)
 
-| Tier | Models | Use Cases | Cost |
-|------|--------|-----------|------|
-| Tier 1 | Claude Sonnet, GPT-4o | Architecture, debugging, security | $$$ |
-| Tier 2 | Gemini Pro, GPT-4o Mini | Implementation, tests, docs | $$ |
-| Tier 3 | Gemini Flash, Llama | Formatting, linting, conversion | $ |
+| Tier | Model | Use Cases | Cost/1M tokens |
+|------|-------|-----------|----------------|
+| Tier 1 | Claude Opus 4.5 | Architecture, debugging, security | $15.00 / $75.00 |
+| Tier 2 | GPT-5.2 | Implementation, tests, docs | $15.00 / $60.00 |
+| Tier 3 | Gemini 3 Pro Preview | Formatting, linting, fast ops | $10.00 / $40.00 |
+
+### CLI Agent Integration
+
+The system supports three CLI agents for code generation:
+- **Claude Code CLI** (`claude`): Uses `-p`, `--output-format stream-json`
+- **Gemini CLI** (`gemini`): Uses `-m`, `-o stream-json`, `-y` (yolo mode)
+- **Codex CLI** (`codex`): Uses `exec`, `-m`, `-c approval-policy`
+
+Each CLI tool authenticates via OAuth, so no API keys are required for local execution.
 
 ### Budget Management
 
