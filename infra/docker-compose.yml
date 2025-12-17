@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Database
   postgres:
     image: pgvector/pgvector:pg16
     container_name: ae-postgres
@@ -17,7 +18,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - ae-network
 
+  # Cache
   redis:
     image: redis:7-alpine
     container_name: ae-redis
@@ -25,7 +29,15 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ae-network
 
+  # Temporal Server
   temporal:
     image: temporalio/auto-setup:1.25
     container_name: ae-temporal
@@ -43,7 +55,10 @@ services:
       - "7233:7233"
     volumes:
       - ./temporal:/etc/temporal/config/dynamicconfig
+    networks:
+      - ae-network
 
+  # Temporal UI
   temporal-ui:
     image: temporalio/ui:2.31.2
     container_name: ae-temporal-ui
@@ -54,7 +69,10 @@ services:
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     ports:
       - "8080:8080"
+    networks:
+      - ae-network
 
+  # Phoenix Observability
   phoenix:
     image: arizephoenix/phoenix:latest
     container_name: ae-phoenix
@@ -63,7 +81,83 @@ services:
       - "4317:4317"
     environment:
       - PHOENIX_WORKING_DIR=/phoenix
+    networks:
+      - ae-network
+
+  # API Server
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    container_name: ae-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://ae:ae@postgres:5432/ae
+      - REDIS_URL=redis://redis:6379
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:4317
+      # API Keys (mounted from secrets or env file)
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../apps/api:/app
+      - /app/__pycache__
+      - /app/.venv
+    networks:
+      - ae-network
+    restart: unless-stopped
+
+  # Temporal Worker (with CLI tools)
+  worker:
+    build:
+      context: ../workers/temporal-worker
+      dockerfile: Dockerfile
+    container_name: ae-worker
+    depends_on:
+      temporal:
+        condition: service_started
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TEMPORAL_TASK_QUEUE=genesis-queue
+      # CLI Auth (OAuth tokens mounted as volumes)
+      - CLAUDE_CONFIG_DIR=/home/worker/.claude
+      - GEMINI_CONFIG_DIR=/home/worker/.gemini
+      - CODEX_CONFIG_DIR=/home/worker/.codex
+      # API Keys for direct API calls
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - ../workers/temporal-worker:/app
+      - /app/node_modules
+      # Mount CLI config directories for OAuth tokens
+      - ${HOME}/.claude:/home/worker/.claude:ro
+      - ${HOME}/.gemini:/home/worker/.gemini:ro
+      - ${HOME}/.codex:/home/worker/.codex:ro
+      # Workspace for generated projects
+      - workspaces:/workspaces
+    networks:
+      - ae-network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+  workspaces:
+
+networks:
+  ae-network:
+    driver: bridge

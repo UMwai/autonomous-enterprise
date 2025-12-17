@@ -2,17 +2,18 @@
  * Unified Agent Harness - Execution Layer for CLI-based AI Agents
  *
  * Provides a unified interface for running different AI agent CLI tools
- * (Claude Code, Gemini CLI, OpenCode) with consistent configuration,
+ * (Claude Code, Gemini CLI, Codex CLI) with consistent configuration,
  * result handling, and error management.
  */
 
 import { ClaudeCodeAdapter } from './claudeCode.js';
 import { GeminiCliAdapter } from './geminiCli.js';
+import { CodexCliAdapter } from './codexCli.js';
 
 /**
  * Supported agent providers
  */
-export type AgentProvider = 'claude' | 'gemini' | 'opencode';
+export type AgentProvider = 'claude' | 'gemini' | 'codex';
 
 /**
  * Configuration for running an agent
@@ -147,8 +148,8 @@ export function parseAgentOutput(
       return parseClaudeOutput(output);
     case 'gemini':
       return parseGeminiOutput(output);
-    case 'opencode':
-      return parseOpenCodeOutput(output);
+    case 'codex':
+      return parseCodexOutput(output);
     default:
       return result;
   }
@@ -233,21 +234,48 @@ function parseGeminiOutput(output: string): Partial<AgentRunResult> {
 }
 
 /**
- * Parse OpenCode output
+ * Parse Codex CLI output
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function parseOpenCodeOutput(_output: string): Partial<AgentRunResult> {
+function parseCodexOutput(output: string): Partial<AgentRunResult> {
   const result: Partial<AgentRunResult> = {
     patches: [],
     errors: [],
     tokensUsed: { total: 0 },
     structuredOutput: {
       filesChanged: [],
+      commandsRun: [],
+      insights: [],
     },
   };
 
-  // OpenCode parsing would go here
-  // Currently a placeholder
+  // Extract file changes
+  const fileChangeRegex = /(?:Created|Modified|Wrote|Updated|Edited)\s+[`']?([^\s`'\n]+\.[a-zA-Z]+)[`']?/gi;
+  let match;
+  while ((match = fileChangeRegex.exec(output)) !== null) {
+    result.structuredOutput!.filesChanged!.push(match[1]);
+  }
+
+  // Extract commands run
+  const commandRegex = /(?:Running|Executing|Command):\s*`([^`]+)`/gi;
+  while ((match = commandRegex.exec(output)) !== null) {
+    result.structuredOutput!.commandsRun!.push(match[1]);
+  }
+
+  // Extract errors
+  const errorRegex = /(?:Error|Failed|Exception):\s*(.+?)(?:\n|$)/gi;
+  while ((match = errorRegex.exec(output)) !== null) {
+    result.errors!.push({
+      message: match[1],
+      type: 'execution',
+    });
+  }
+
+  // Extract token usage
+  const tokenRegex = /tokens?:\s*(\d+)/i;
+  const tokenMatch = tokenRegex.exec(output);
+  if (tokenMatch) {
+    result.tokensUsed!.total = parseInt(tokenMatch[1], 10);
+  }
 
   return result;
 }
@@ -297,8 +325,20 @@ export async function runAgent(config: AgentRunConfig): Promise<AgentRunResult> 
         break;
       }
 
-      case 'opencode': {
-        throw new Error('OpenCode adapter not yet implemented');
+      case 'codex': {
+        const adapter = new CodexCliAdapter();
+        result = await adapter.run(
+          config.spec.prompt,
+          config.workspace,
+          {
+            timeout,
+            missionLog: config.spec.missionLog,
+            errorRegistry: config.spec.errorRegistry,
+            currentPhase: config.spec.currentPhase,
+            ...config.providerOptions,
+          }
+        );
+        break;
       }
 
       default: {

@@ -6,7 +6,10 @@
 
 // CLI Activities
 export * from './cli/claudeCode.js';
+export * from './cli/geminiCli.js';
+export * from './cli/codexCli.js';
 export * from './cli/harness.js';
+export * from './cli/processManager.js';
 
 // Git Activities
 export * from './git/index.js';

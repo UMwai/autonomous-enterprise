@@ -1,12 +1,11 @@
 /**
  * Claude Code CLI Adapter
  *
- * Adapter for running Claude Code CLI in headless mode via subprocess.
- * Handles conversation history injection, streaming JSON parsing,
- * and extraction of file patches and errors from output.
+ * Real adapter for running Claude Code CLI (`claude`) in headless mode.
+ * Uses -p/--print for non-interactive execution with stream-json output.
  */
 
-import { execa } from 'execa';
+import { execa, ExecaChildProcess } from 'execa';
 import stripAnsi from 'strip-ansi';
 import type { AgentRunResult, FilePatch } from './harness.js';
 
@@ -35,35 +34,54 @@ export interface ClaudeOptions {
     maxCost?: number;
   };
 
-  /** Conversation history to inject */
-  conversationHistory?: Array<{
-    role: 'user' | 'assistant';
-    content: string;
-  }>;
-
-  /** Model to use (default: claude-sonnet-4-5) */
+  /** Model to use (default: claude-opus-4-5-20251101) */
   model?: string;
 
   /** Output format (default: stream-json) */
-  outputFormat?: 'stream-json' | 'text' | 'markdown';
+  outputFormat?: 'stream-json' | 'text' | 'json';
+
+  /** System prompt to prepend */
+  systemPrompt?: string;
+
+  /** Allowed tools (e.g., "Bash,Edit,Read") */
+  allowedTools?: string[];
+
+  /** Skip permission dialogs (for sandboxed execution) */
+  dangerouslySkipPermissions?: boolean;
 
   /** Environment variables to pass */
   env?: Record<string, string>;
+
+  /** Continue previous session */
+  continueSession?: boolean;
+
+  /** Resume specific session ID */
+  resumeSession?: string;
 }
 
 /**
- * Streaming JSON event from Claude Code
+ * Streaming JSON event types from Claude Code
  */
-interface StreamEvent {
-  type: 'tool_use' | 'text' | 'error' | 'completion' | 'token_usage';
-  data?: unknown;
-  content?: string;
-  error?: string;
-  tokens?: {
-    input: number;
-    output: number;
-    total: number;
+interface ClaudeStreamEvent {
+  type: 'system' | 'assistant' | 'user' | 'result';
+  subtype?: string;
+  message?: {
+    content?: string | Array<{ type: string; text?: string; tool_use?: unknown }>;
   };
+  tool_use?: {
+    name: string;
+    input: Record<string, unknown>;
+  };
+  result?: {
+    output?: string;
+    exit_code?: number;
+  };
+  session_id?: string;
+  cost_usd?: number;
+  duration_ms?: number;
+  duration_api_ms?: number;
+  num_turns?: number;
+  is_error?: boolean;
 }
 
 /**
@@ -71,6 +89,7 @@ interface StreamEvent {
  */
 export class ClaudeCodeAdapter {
   private readonly claudeBinary: string;
+  private readonly defaultModel: string = 'claude-opus-4-5-20251101';
 
   constructor(claudeBinary = 'claude') {
     this.claudeBinary = claudeBinary;
@@ -85,7 +104,7 @@ export class ClaudeCodeAdapter {
     options: ClaudeOptions = {}
   ): Promise<AgentRunResult> {
     const startTime = Date.now();
-    const timeout = options.timeout || 300000;
+    const timeout = options.timeout || 600000; // 10 minutes default
 
     try {
       // Build the enhanced prompt with context
@@ -94,6 +113,9 @@ export class ClaudeCodeAdapter {
       // Build command arguments
       const args = this.buildClaudeArgs(enhancedPrompt, options);
 
+      console.log(`[ClaudeCodeAdapter] Running: ${this.claudeBinary} ${args.join(' ')}`);
+      console.log(`[ClaudeCodeAdapter] Workspace: ${workspace}`);
+
       // Execute Claude Code CLI
       const result = await execa(this.claudeBinary, args, {
         cwd: workspace,
@@ -101,13 +123,18 @@ export class ClaudeCodeAdapter {
         env: {
           ...process.env,
           ...options.env,
+          // Ensure Claude knows the workspace
+          CLAUDE_CODE_WORKSPACE: workspace,
         },
         all: true, // Capture both stdout and stderr
         reject: false, // Don't throw on non-zero exit
       });
 
       // Parse the output
-      const parsedResult = this.parseOutput(result.all || result.stdout, options.outputFormat);
+      const parsedResult = this.parseOutput(
+        result.all || result.stdout,
+        options.outputFormat || 'stream-json'
+      );
 
       // Extract file patches
       const patches = this.extractPatches(parsedResult.structuredOutput);
@@ -127,7 +154,6 @@ export class ClaudeCodeAdapter {
 
       return agentResult;
     } catch (error) {
-      // Handle execution errors
       const duration = Date.now() - startTime;
 
       return {
@@ -151,6 +177,106 @@ export class ClaudeCodeAdapter {
   }
 
   /**
+   * Run Claude Code interactively with streaming output
+   */
+  async runStreaming(
+    prompt: string,
+    workspace: string,
+    options: ClaudeOptions = {},
+    onEvent: (event: ClaudeStreamEvent) => void
+  ): Promise<AgentRunResult> {
+    const startTime = Date.now();
+    const timeout = options.timeout || 600000;
+
+    const enhancedPrompt = this.buildEnhancedPrompt(prompt, options);
+    const args = this.buildClaudeArgs(enhancedPrompt, {
+      ...options,
+      outputFormat: 'stream-json',
+    });
+
+    return new Promise((resolve) => {
+      const subprocess = execa(this.claudeBinary, args, {
+        cwd: workspace,
+        timeout,
+        env: {
+          ...process.env,
+          ...options.env,
+        },
+        reject: false,
+      });
+
+      let fullOutput = '';
+      const filesChanged: string[] = [];
+      const commandsRun: string[] = [];
+      const errors: AgentRunResult['errors'] = [];
+      let cost: number | undefined;
+      let sessionId: string | undefined;
+
+      // Process streaming output
+      subprocess.stdout?.on('data', (data: Buffer) => {
+        const lines = data.toString().split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          fullOutput += line + '\n';
+
+          try {
+            const event = JSON.parse(line) as ClaudeStreamEvent;
+            onEvent(event);
+
+            // Extract metadata from events
+            if (event.session_id) sessionId = event.session_id;
+            if (event.cost_usd) cost = event.cost_usd;
+
+            // Track tool uses
+            if (event.tool_use) {
+              if (event.tool_use.name === 'Edit' || event.tool_use.name === 'Write') {
+                const filePath = event.tool_use.input.file_path as string;
+                if (filePath && !filesChanged.includes(filePath)) {
+                  filesChanged.push(filePath);
+                }
+              }
+              if (event.tool_use.name === 'Bash') {
+                const command = event.tool_use.input.command as string;
+                if (command) commandsRun.push(command);
+              }
+            }
+
+            // Track errors
+            if (event.is_error && event.result?.output) {
+              errors.push({
+                message: event.result.output,
+                type: 'execution',
+              });
+            }
+          } catch {
+            // Not JSON, append as raw output
+          }
+        }
+      });
+
+      subprocess.on('close', (exitCode) => {
+        const duration = Date.now() - startTime;
+
+        resolve({
+          success: exitCode === 0 && errors.length === 0,
+          output: fullOutput,
+          structuredOutput: {
+            filesChanged,
+            commandsRun,
+            insights: [],
+          },
+          patches: filesChanged.map(path => ({ path, type: 'modify' as const })),
+          errors,
+          tokensUsed: { total: 0 },
+          cost: cost ? { amount: cost, currency: 'USD' } : undefined,
+          duration,
+          exitCode: exitCode || 0,
+        });
+      });
+    });
+  }
+
+  /**
    * Build enhanced prompt with context
    */
   private buildEnhancedPrompt(prompt: string, options: ClaudeOptions): string {
@@ -158,37 +284,37 @@ export class ClaudeCodeAdapter {
 
     // Add current phase context
     if (options.currentPhase) {
-      parts.push(`# Current Phase: ${options.currentPhase}\n`);
+      parts.push(`## Current Phase: ${options.currentPhase}\n`);
     }
 
     // Add mission log context
     if (options.missionLog && options.missionLog.length > 0) {
-      parts.push('# Mission Log (Recent History):');
-      parts.push(options.missionLog.slice(-5).join('\n')); // Last 5 entries
+      parts.push('## Mission Log (Recent History):');
+      parts.push(options.missionLog.slice(-5).join('\n'));
       parts.push('');
     }
 
     // Add error registry
     if (options.errorRegistry && options.errorRegistry.length > 0) {
-      parts.push('# Error Registry (Lessons Learned):');
-      parts.push(options.errorRegistry.slice(-3).join('\n')); // Last 3 errors
+      parts.push('## Error Registry (Lessons Learned):');
+      parts.push(options.errorRegistry.slice(-3).join('\n'));
       parts.push('');
     }
 
     // Add directives
     if (options.directives && options.directives.length > 0) {
-      parts.push('# Directives:');
+      parts.push('## Directives:');
       parts.push(options.directives.join('\n'));
       parts.push('');
     }
 
-    // Add token budget warning
-    if (options.budget?.maxTokens) {
-      parts.push(`# Token Budget: Maximum ${options.budget.maxTokens} tokens\n`);
+    // Add budget warning
+    if (options.budget?.maxCost) {
+      parts.push(`## Budget: Maximum $${options.budget.maxCost} USD\n`);
     }
 
     // Add main prompt
-    parts.push('# Task:');
+    parts.push('## Task:');
     parts.push(prompt);
 
     return parts.join('\n');
@@ -200,7 +326,7 @@ export class ClaudeCodeAdapter {
   private buildClaudeArgs(prompt: string, options: ClaudeOptions): string[] {
     const args: string[] = [];
 
-    // Prompt argument
+    // Non-interactive print mode
     args.push('-p', prompt);
 
     // Output format
@@ -208,12 +334,35 @@ export class ClaudeCodeAdapter {
     args.push('--output-format', format);
 
     // Model selection
-    if (options.model) {
-      args.push('--model', options.model);
+    const model = options.model || this.defaultModel;
+    args.push('--model', model);
+
+    // Budget control
+    if (options.budget?.maxCost) {
+      args.push('--max-budget-usd', options.budget.maxCost.toString());
     }
 
-    // Headless mode (no interactive prompts)
-    args.push('--headless');
+    // Permission mode for automation
+    if (options.dangerouslySkipPermissions) {
+      args.push('--dangerously-skip-permissions');
+    }
+
+    // Allowed tools
+    if (options.allowedTools && options.allowedTools.length > 0) {
+      args.push('--tools', options.allowedTools.join(','));
+    }
+
+    // System prompt
+    if (options.systemPrompt) {
+      args.push('--system-prompt', options.systemPrompt);
+    }
+
+    // Session management
+    if (options.continueSession) {
+      args.push('--continue');
+    } else if (options.resumeSession) {
+      args.push('--resume', options.resumeSession);
+    }
 
     return args;
   }
@@ -223,7 +372,7 @@ export class ClaudeCodeAdapter {
    */
   private parseOutput(
     output: string,
-    format: string = 'stream-json'
+    format: string
   ): {
     structuredOutput: AgentRunResult['structuredOutput'];
     errors: AgentRunResult['errors'];
@@ -242,29 +391,50 @@ export class ClaudeCodeAdapter {
       cost: undefined as AgentRunResult['cost'],
     };
 
-    // Clean ANSI codes
     const cleanOutput = stripAnsi(output);
 
-    if (format === 'stream-json') {
-      // Parse streaming JSON events
+    if (format === 'stream-json' || format === 'json') {
       const events = this.parseStreamJson(cleanOutput);
 
       for (const event of events) {
-        if (event.type === 'token_usage' && event.tokens) {
-          result.tokensUsed = event.tokens;
-        } else if (event.type === 'error' && event.error) {
+        // Extract cost
+        if (event.cost_usd) {
+          result.cost = { amount: event.cost_usd, currency: 'USD' };
+        }
+
+        // Extract file changes from tool uses
+        if (event.tool_use) {
+          if (event.tool_use.name === 'Edit' || event.tool_use.name === 'Write') {
+            const filePath = event.tool_use.input?.file_path as string;
+            if (filePath && !result.structuredOutput.filesChanged!.includes(filePath)) {
+              result.structuredOutput.filesChanged!.push(filePath);
+            }
+          }
+          if (event.tool_use.name === 'Bash') {
+            const command = event.tool_use.input?.command as string;
+            if (command) {
+              result.structuredOutput.commandsRun!.push(command);
+            }
+          }
+        }
+
+        // Extract errors
+        if (event.is_error && event.result?.output) {
           result.errors.push({
-            message: event.error,
+            message: event.result.output,
             type: 'execution',
           });
-        } else if (event.type === 'tool_use' && event.data) {
-          this.extractToolData(event.data, result.structuredOutput);
-        } else if (event.type === 'text' && event.content) {
-          result.structuredOutput.summary = (result.structuredOutput.summary || '') + event.content;
+        }
+
+        // Extract assistant messages as summary
+        if (event.type === 'assistant' && event.message?.content) {
+          if (typeof event.message.content === 'string') {
+            result.structuredOutput.summary += event.message.content;
+          }
         }
       }
     } else {
-      // Parse text/markdown output
+      // Parse text output
       this.parseTextOutput(cleanOutput, result.structuredOutput);
     }
 
@@ -272,23 +442,20 @@ export class ClaudeCodeAdapter {
   }
 
   /**
-   * Parse streaming JSON output from Claude Code
+   * Parse streaming JSON output
    */
-  parseStreamJson(output: string): StreamEvent[] {
-    const events: StreamEvent[] = [];
+  private parseStreamJson(output: string): ClaudeStreamEvent[] {
+    const events: ClaudeStreamEvent[] = [];
     const lines = output.split('\n');
 
     for (const line of lines) {
-      if (!line.trim() || !line.startsWith('{')) {
-        continue;
-      }
+      if (!line.trim() || !line.startsWith('{')) continue;
 
       try {
-        const event = JSON.parse(line) as StreamEvent;
+        const event = JSON.parse(line) as ClaudeStreamEvent;
         events.push(event);
       } catch {
         // Skip invalid JSON lines
-        continue;
       }
     }
 
@@ -296,14 +463,14 @@ export class ClaudeCodeAdapter {
   }
 
   /**
-   * Parse text output for file changes and commands
+   * Parse text output for file changes
    */
   private parseTextOutput(
     output: string,
     structured: NonNullable<AgentRunResult['structuredOutput']>
   ): void {
     // Extract file changes
-    const fileChangeRegex = /(?:Created|Modified|Edited|Updated)\s+(?:file\s+)?[`']?([^\s`']+\.(?:ts|js|json|md|yml|yaml|txt|py|go|java|rs))[`']?/gi;
+    const fileChangeRegex = /(?:Created|Modified|Edited|Updated|Wrote)\s+(?:file\s+)?[`']?([^\s`'\n]+\.[a-zA-Z]+)[`']?/gi;
     let match;
     while ((match = fileChangeRegex.exec(output)) !== null) {
       const file = match[1];
@@ -313,48 +480,9 @@ export class ClaudeCodeAdapter {
     }
 
     // Extract commands
-    const commandRegex = /(?:Running|Executed|Running command):\s*[`']([^`']+)[`']/gi;
+    const commandRegex = /(?:Running|Executed|Command):\s*[`']([^`'\n]+)[`']/gi;
     while ((match = commandRegex.exec(output)) !== null) {
       structured.commandsRun!.push(match[1]);
-    }
-
-    // Extract insights (look for bullet points or numbered lists)
-    const insightRegex = /(?:^|\n)[-*]\s+(.+?)(?=\n|$)/gm;
-    while ((match = insightRegex.exec(output)) !== null) {
-      const insight = match[1].trim();
-      if (insight.length > 10) { // Filter out very short items
-        structured.insights!.push(insight);
-      }
-    }
-  }
-
-  /**
-   * Extract data from tool use events
-   */
-  private extractToolData(
-    data: unknown,
-    structured: NonNullable<AgentRunResult['structuredOutput']>
-  ): void {
-    if (typeof data !== 'object' || !data) {
-      return;
-    }
-
-    const toolData = data as Record<string, unknown>;
-
-    // Extract file operations
-    if (toolData.tool === 'write' || toolData.tool === 'edit') {
-      const filePath = toolData.file_path || toolData.path;
-      if (typeof filePath === 'string' && !structured.filesChanged!.includes(filePath)) {
-        structured.filesChanged!.push(filePath);
-      }
-    }
-
-    // Extract command executions
-    if (toolData.tool === 'bash' || toolData.tool === 'shell') {
-      const command = toolData.command;
-      if (typeof command === 'string') {
-        structured.commandsRun!.push(command);
-      }
     }
   }
 
@@ -366,17 +494,27 @@ export class ClaudeCodeAdapter {
   ): FilePatch[] {
     const patches: FilePatch[] = [];
 
-    if (!structured?.filesChanged) {
-      return patches;
-    }
+    if (!structured?.filesChanged) return patches;
 
     for (const filePath of structured.filesChanged) {
       patches.push({
         path: filePath,
-        type: 'modify', // Default to modify; could be enhanced to detect create vs modify
+        type: 'modify',
       });
     }
 
     return patches;
   }
+}
+
+/**
+ * Activity function for Temporal
+ */
+export async function runClaudeCode(input: {
+  prompt: string;
+  workspace: string;
+  options?: ClaudeOptions;
+}): Promise<AgentRunResult> {
+  const adapter = new ClaudeCodeAdapter();
+  return adapter.run(input.prompt, input.workspace, input.options);
 }
