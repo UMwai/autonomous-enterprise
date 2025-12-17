@@ -1,0 +1,52 @@
+mode: paper  # paper | live
+
+# Pairs to trade (this bot assumes a shared quote currency, e.g. USDT).
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+
+exchange:
+  name: binance
+  api_key: ""     # Prefer env: BINANCE_API_KEY
+  api_secret: ""  # Prefer env: BINANCE_API_SECRET
+  testnet: false
+  enable_rate_limit: true
+  timeout_ms: 30000
+
+strategy:
+  timeframe: 5m
+  ohlcv_limit: 200
+  rsi_period: 14
+  rsi_oversold: 30
+  rsi_overbought: 70
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  volume_ma_period: 20
+  volume_spike_mult: 1.2
+
+risk:
+  max_position_pct: 0.02
+  stop_loss_pct: 0.03
+  take_profit_pct: 0.05
+  daily_drawdown_limit_pct: 0.05
+
+paper:
+  starting_cash_usdt: 10000
+  fee_pct: 0.001
+
+redis:
+  enabled: true
+  url: redis://localhost:6379/0
+  prefix: "trading-bot:"
+  ttl_seconds: 45
+
+sqlite:
+  path: trade_history.sqlite3
+
+discord:
+  webhook_url: ""  # Prefer env: DISCORD_WEBHOOK_URL
+
+runtime:
+  poll_interval_seconds: 60
+  log_level: INFO
