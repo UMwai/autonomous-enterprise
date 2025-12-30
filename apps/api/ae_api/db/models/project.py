@@ -11,6 +11,12 @@ from ae_api.db.models.base import Base
 if TYPE_CHECKING:
     from ae_api.db.models.run import Run
     from ae_api.db.models.artifact import Artifact
+    from ae_api.db.models.genesis import (
+        NicheCandidate,
+        ProductSpec,
+        TechnicalSpec,
+        TaskGraph,
+    )
 
 
 class ProjectStatus(str, Enum):
@@ -65,3 +71,17 @@ class Project(Base):
     # Relationships
     runs: Mapped[list["Run"]] = relationship("Run", back_populates="project")
     artifacts: Mapped[list["Artifact"]] = relationship("Artifact", back_populates="project")
+
+    # Genesis relationships
+    niche_candidates: Mapped[list["NicheCandidate"]] = relationship(
+        "NicheCandidate", back_populates="project", cascade="all, delete-orphan"
+    )
+    product_specs: Mapped[list["ProductSpec"]] = relationship(
+        "ProductSpec", back_populates="project", cascade="all, delete-orphan"
+    )
+    technical_specs: Mapped[list["TechnicalSpec"]] = relationship(
+        "TechnicalSpec", back_populates="project", cascade="all, delete-orphan"
+    )
+    task_graphs: Mapped[list["TaskGraph"]] = relationship(
+        "TaskGraph", back_populates="project", cascade="all, delete-orphan"
+    )
