@@ -13,3 +13,10 @@ export type {
   CanSpendRequest,
   CanSpendResponse,
 } from './budgets';
+
+export { ApprovalClient, ApprovalStatus } from './approvalClient';
+export type {
+  ApprovalRequest,
+  CreateApprovalRequest,
+  ApprovalDecision,
+} from './approvalClient';
