@@ -91,7 +91,7 @@ export class BudgetClient {
         throw new Error(`Failed to create budget: ${response.status} ${error}`);
       }
 
-      const status: BudgetStatus = await response.json();
+      const status = await response.json() as BudgetStatus;
       logger.info({ runId, status }, 'Budget created successfully');
       return status;
 
@@ -130,7 +130,7 @@ export class BudgetClient {
         throw new Error(`Failed to record spend: ${response.status} ${error}`);
       }
 
-      const status: BudgetStatus = await response.json();
+      const status = await response.json() as BudgetStatus;
 
       if (status.exceeded) {
         logger.warn({ runId, status }, 'Budget exceeded');
@@ -168,7 +168,7 @@ export class BudgetClient {
         throw new Error(`Failed to get budget status: ${response.status} ${error}`);
       }
 
-      const status: BudgetStatus = await response.json();
+      const status = await response.json() as BudgetStatus;
       return status;
 
     } catch (error) {
@@ -206,7 +206,7 @@ export class BudgetClient {
         throw new Error(`Failed to check can spend: ${response.status} ${error}`);
       }
 
-      const result: CanSpendResponse = await response.json();
+      const result = await response.json() as CanSpendResponse;
       return result.can_spend;
 
     } catch (error) {

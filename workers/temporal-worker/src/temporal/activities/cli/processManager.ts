@@ -5,7 +5,7 @@
  * output streaming, and resource cleanup.
  */
 
-import { execa, ExecaChildProcess } from 'execa';
+import { execa, type ResultPromise } from 'execa';
 import { EventEmitter } from 'events';
 import type { AgentRunResult } from './harness.js';
 
@@ -87,7 +87,7 @@ export interface ProcessOutputEvent {
  */
 export class CliProcessManager extends EventEmitter {
   private sessions: Map<string, SessionInfo> = new Map();
-  private processes: Map<string, ExecaChildProcess> = new Map();
+  private processes: Map<string, ResultPromise> = new Map();
   private outputBuffers: Map<string, string[]> = new Map();
 
   /**
@@ -128,23 +128,23 @@ export class CliProcessManager extends EventEmitter {
     this.outputBuffers.set(sessionId, []);
 
     try {
-      // Start the process
-      const process = execa(command, args, {
+      // Start the subprocess
+      const subprocess = execa(command, args, {
         cwd: workspace,
         timeout,
         env: {
-          ...process.env,
+          ...globalThis.process.env,
           ...options.env,
         },
         reject: false,
       });
 
-      this.processes.set(sessionId, process);
+      this.processes.set(sessionId, subprocess);
       session.status = 'running';
-      session.pid = process.pid;
+      session.pid = subprocess.pid;
 
       // Handle stdout
-      process.stdout?.on('data', (data: Buffer) => {
+      subprocess.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
         session.output += text;
         this.outputBuffers.get(sessionId)?.push(text);
@@ -158,7 +158,7 @@ export class CliProcessManager extends EventEmitter {
       });
 
       // Handle stderr
-      process.stderr?.on('data', (data: Buffer) => {
+      subprocess.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
         session.output += text;
         session.errors.push(text);
@@ -172,7 +172,7 @@ export class CliProcessManager extends EventEmitter {
       });
 
       // Handle process completion
-      process.on('close', (exitCode) => {
+      subprocess.on('close', (exitCode: number | null) => {
         session.status = exitCode === 0 ? 'completed' : 'failed';
         session.endedAt = new Date();
         session.exitCode = exitCode || 0;

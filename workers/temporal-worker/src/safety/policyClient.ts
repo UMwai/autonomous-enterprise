@@ -79,7 +79,7 @@ export class PolicyClient {
         throw new Error(`Policy check failed: ${response.status} ${error}`);
       }
 
-      const decision: PolicyDecision = await response.json();
+      const decision = await response.json() as PolicyDecision;
 
       logger.info(
         { action, allowed: decision.allowed, requires_approval: decision.requires_approval },

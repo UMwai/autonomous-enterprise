@@ -1,28 +1,27 @@
 /**
  * Sandbox (E2B) Temporal activities
+ *
+ * This module provides secure code execution through E2B sandboxes
+ * and the LangGraph write-test-fix loop.
  */
 
 // E2B Sandbox exports
-export { E2BSandbox } from './e2b';
+export { E2BSandbox } from './e2b.js';
 export type {
   SandboxSession,
   ExecutionResult,
   FileUpload,
   DownloadedFile,
   ResourceLimits,
-} from './e2b';
+} from './e2b.js';
 
-// Activity interfaces
-export interface SetupScaffoldingInput {
-  project_id: string;
-  tech_stack: {
-    frontend?: string;
-    backend?: string;
-    database?: string;
-  };
-  repository_path: string;
-}
+// Safe execution exports
+export { safeExecuteCode, safeExecuteBatch } from './safeExecute.js';
+export type { SafeExecuteInput, SafeExecuteResult } from './safeExecute.js';
 
+/**
+ * LangGraph loop input
+ */
 export interface LangGraphLoopInput {
   specification: any;
   task_graph?: any;
@@ -30,6 +29,9 @@ export interface LangGraphLoopInput {
   max_iterations: number;
 }
 
+/**
+ * LangGraph loop result
+ */
 export interface LangGraphLoopResult {
   files_generated: number;
   lines_of_code: number;
@@ -37,75 +39,53 @@ export interface LangGraphLoopResult {
   success: boolean;
 }
 
-export interface LinterInput {
-  repository_path: string;
-}
-
-export interface LinterResult {
-  errors: number;
-  warnings: number;
-  quality_score: number;
-}
-
-export interface TestInput {
-  repository_path: string;
-  test_command: string;
-}
-
-export interface TestResults {
-  total_tests: number;
-  passed: number;
-  failed: number;
-  skipped: number;
-  coverage_percentage?: number;
-  test_duration_ms: number;
-}
-
-/**
- * Setup project scaffolding
- */
-export async function setupProjectScaffolding(input: SetupScaffoldingInput): Promise<void> {
-  // In production, use E2B sandbox to safely setup project
-  // Would create package.json, tsconfig, etc. based on tech stack
-}
-
 /**
  * Run LangGraph write-test-fix loop
+ *
+ * This activity orchestrates the iterative code generation process:
+ * 1. Plan - Analyze the task and create implementation plan
+ * 2. Write - Generate code using CLI agent
+ * 3. Test - Run tests in E2B sandbox
+ * 4. Diagnose - Analyze failures if any
+ * 5. Fix - Apply fixes and repeat
  */
 export async function runLangGraphLoop(input: LangGraphLoopInput): Promise<LangGraphLoopResult> {
-  // In production, execute the LangGraph state machine
-  // For now, return placeholder
-  return {
-    files_generated: 15,
-    lines_of_code: 1500,
-    iterations: 3,
-    success: true,
-  };
-}
+  const { executeWriteTestFix } = await import('../../../langgraph/graphs/writeTestFix.js');
 
-/**
- * Run linter on generated code
- */
-export async function runLinter(input: LinterInput): Promise<LinterResult> {
-  // In production, run ESLint/Ruff in E2B sandbox
-  return {
-    errors: 0,
-    warnings: 2,
-    quality_score: 95,
-  };
-}
+  // Extract task description from specification
+  const taskDescription = typeof input.specification === 'string'
+    ? input.specification
+    : input.specification?.description || input.specification?.name || 'Implement the product';
 
-/**
- * Run tests
- */
-export async function runTests(input: TestInput): Promise<TestResults> {
-  // In production, run tests in E2B sandbox
+  // Extract acceptance criteria from task graph or specification
+  const acceptanceCriteria = input.task_graph?.tasks?.map((t: { title?: string; description?: string }) =>
+    t.title || t.description || 'Complete task'
+  ) || input.specification?.features?.map((f: string | { name?: string }) =>
+    typeof f === 'string' ? f : f.name || 'Implement feature'
+  ) || ['Code compiles', 'Tests pass', 'Linting passes'];
+
+  // Execute the LangGraph workflow
+  const result = await executeWriteTestFix(
+    `task-${Date.now()}`,
+    taskDescription,
+    acceptanceCriteria,
+    {
+      maxIterations: input.max_iterations,
+      workspace: input.repository_path,
+      provider: 'claude',
+      budgetLimit: 10.0,
+    }
+  );
+
+  // Count files and lines from the result
+  const filesGenerated = Object.keys(result.currentFiles || {}).length;
+  const linesOfCode = Object.values(result.currentFiles || {})
+    .reduce((sum, content) => sum + (content?.split('\n').length || 0), 0);
+
   return {
-    total_tests: 10,
-    passed: 10,
-    failed: 0,
-    skipped: 0,
-    coverage_percentage: 85,
-    test_duration_ms: 5000,
+    files_generated: filesGenerated,
+    lines_of_code: linesOfCode,
+    iterations: result.iteration || 1,
+    success: result.testsPassing || false,
   };
 }

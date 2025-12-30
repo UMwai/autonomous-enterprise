@@ -31,10 +31,12 @@ The Atomic Tools Layer provides a unified interface for executing operations wit
                    │
 ┌──────────────────▼──────────────────────────┐
 │  Atomic Tools                                │
-│  - ReadFileTool                              │
-│  - GrepTool                                  │
-│  - ApplyPatchTool                            │
-│  - RunCommandTool                            │
+│  - ReadFileTool (SAFE)                       │
+│  - GrepTool (SAFE)                           │
+│  - ApplyPatchTool (LOW)                      │
+│  - RunCommandTool (MEDIUM)                   │
+│  - DeployVercelTool (CRITICAL)               │
+│  - CreateStripeProductTool (CRITICAL)        │
 │  - (More tools can be added...)              │
 └──────────────────────────────────────────────┘
 ```
@@ -178,6 +180,71 @@ const result = await executor.execute(
   },
   context
 );
+```
+
+### DeployVercelTool (CRITICAL)
+
+Deploy applications to Vercel hosting platform.
+
+**Requires human approval** when policy enforcement is enabled.
+
+```typescript
+const result = await executor.execute(
+  deployTool,
+  {
+    projectName: 'my-saas-app',
+    sourcePath: '/path/to/project',
+    envVars: {
+      NODE_ENV: 'production',
+      API_KEY: 'secret-key',
+    },
+    buildCommand: 'npm run build',
+    outputDirectory: 'dist',
+    waitForCompletion: true,
+    timeoutSeconds: 600,
+  },
+  context
+);
+
+// Handle approval requirement
+if (!result.success && result.errors?.[0]?.code === 'APPROVAL_REQUIRED') {
+  const actionId = result.errors[0].context?.action_id;
+  // Use ApprovalClient to request and wait for approval
+  await approvalClient.requestAndWait({ action_id: actionId, ... });
+}
+```
+
+### CreateStripeProductTool (CRITICAL)
+
+Create Stripe products with pricing configuration.
+
+**Requires human approval** when policy enforcement is enabled.
+
+```typescript
+const result = await executor.execute(
+  stripeTool,
+  {
+    name: 'Premium Plan',
+    description: 'Full access to all features',
+    priceInCents: 2999,  // $29.99
+    currency: 'usd',
+    interval: 'month',    // or 'year'
+    oneTime: false,       // recurring by default
+    trialPeriodDays: 14,
+    metadata: {
+      feature_set: 'premium',
+      tier: '2',
+    },
+  },
+  context
+);
+
+// Handle approval requirement
+if (!result.success && result.errors?.[0]?.code === 'APPROVAL_REQUIRED') {
+  const actionId = result.errors[0].context?.action_id;
+  // Use ApprovalClient to request and wait for approval
+  await approvalClient.requestAndWait({ action_id: actionId, ... });
+}
 ```
 
 ## Usage Examples
@@ -380,19 +447,31 @@ describe('ReadFileTool', () => {
 });
 ```
 
+## Implemented Tools Summary
+
+| Tool | Category | Risk Level | Cost | Description |
+|------|----------|------------|------|-------------|
+| `read_file` | READ | SAFE | $0.0001 | Read file contents with pagination |
+| `grep` | SEARCH | SAFE | $0.0001 | Search files using ripgrep |
+| `apply_patch` | EDIT | LOW | $0.0001 | Apply text patches with rollback |
+| `run_command` | SHELL | MEDIUM | $0.001 | Execute shell commands |
+| `deploy_vercel` | DEPLOY | CRITICAL | $0.05 | Deploy to Vercel (requires approval) |
+| `create_stripe_product` | BILLING | CRITICAL | $0.01 | Create Stripe products (requires approval) |
+
 ## Future Enhancements
 
 - [ ] WriteTool for creating new files
 - [ ] DeleteTool for removing files/directories
-- [ ] GitTool for git operations
+- [ ] GitTool for git operations (clone, commit, push, PR)
 - [ ] HttpTool for HTTP requests
 - [ ] TestTool for running tests
 - [ ] BuildTool for building projects
-- [ ] DeployTool for deployments
+- [ ] DeployNetlifyTool for Netlify deployments
 - [ ] Database tools (read/write)
 - [ ] LLM tools (with token tracking)
 - [ ] File system operations (copy, move, mkdir)
 - [ ] Archive tools (zip, tar, etc.)
+- [ ] Docker tools (build, run, push)
 
 ## References
 

@@ -59,29 +59,22 @@ export interface ResourceLimits {
  */
 export class E2BSandbox {
   private static readonly DEFAULT_TIMEOUT_MS = 60000; // 60 seconds
-  private static readonly DEFAULT_MEMORY_MB = 512;
-  private static readonly DEFAULT_CPU_COUNT = 1;
 
   /**
    * Create a new sandbox session.
    *
    * @param template - E2B template to use (default: 'base')
-   * @param limits - Resource limits for the sandbox
+   * @param _limits - Resource limits for the sandbox (currently unused)
    * @returns Sandbox session handle
    */
   static async create(
     template: string = 'base',
-    limits?: ResourceLimits
+    _limits?: ResourceLimits
   ): Promise<SandboxSession> {
-    logger.info({ template, limits }, 'Creating E2B sandbox');
+    logger.info({ template }, 'Creating E2B sandbox');
 
     try {
-      const sandbox = await Sandbox.create({
-        template,
-        metadata: {
-          createdAt: new Date().toISOString(),
-        },
-      });
+      const sandbox = await Sandbox.create(template);
 
       const session: SandboxSession = {
         id: sandbox.sandboxId,
@@ -120,14 +113,14 @@ export class E2BSandbox {
       }
 
       const result = await session.sandbox.commands.run(command, {
-        timeout: timeout / 1000, // E2B expects seconds
+        timeoutMs: timeout,
       });
 
       const executionResult: ExecutionResult = {
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
-        timedOut: result.timedOut || false,
+        timedOut: false, // E2B throws on timeout rather than setting a flag
       };
 
       logger.info(

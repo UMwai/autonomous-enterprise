@@ -70,7 +70,7 @@ export async function deployToVercel(config: VercelDeployConfig): Promise<Deploy
       throw new Error(`Vercel deployment failed: ${response.status} - ${error}`);
     }
 
-    const deployment = await response.json();
+    const deployment = await response.json() as { id: string; url: string; state: string };
 
     logger.info('Vercel deployment created', {
       deployment_id: deployment.id,
@@ -126,7 +126,7 @@ export async function deployToNetlify(config: NetlifyDeployConfig): Promise<Depl
       throw new Error(`Netlify deployment failed: ${response.status} - ${error}`);
     }
 
-    const deployment = await response.json();
+    const deployment = await response.json() as { id: string; url: string; state: string };
 
     logger.info('Netlify deployment created', {
       deployment_id: deployment.id,
@@ -179,7 +179,7 @@ export async function getDeploymentStatus(
       throw new Error(`Failed to get deployment status: ${response.status} - ${error}`);
     }
 
-    const status = await response.json();
+    const status = await response.json() as DeploymentResult;
 
     logger.info('Deployment status retrieved', {
       deployment_id,

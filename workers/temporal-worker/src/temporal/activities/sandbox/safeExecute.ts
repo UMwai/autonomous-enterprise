@@ -5,7 +5,7 @@
 import { Context } from '@temporalio/activity';
 import pino from 'pino';
 import { E2BSandbox, ExecutionResult, SandboxSession } from './e2b';
-import { PolicyClient, BudgetClient, ActionType } from '../../../safety';
+import { PolicyClient, BudgetClient } from '../../../safety';
 
 const logger = pino();
 

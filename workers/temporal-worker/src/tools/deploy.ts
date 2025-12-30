@@ -127,7 +127,8 @@ export class DeployVercelTool implements AtomicTool<DeployVercelInput, DeployVer
       if (decision.requires_approval) {
         const actionId = `deploy-vercel-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-        const approval = await context.observer.onToolStart(
+        // Log approval requirement
+        context.observer.onToolStart(
           `${this.name}.approval`,
           {
             action_id: actionId,

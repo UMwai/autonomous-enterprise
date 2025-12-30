@@ -6,7 +6,6 @@
 
 import { NativeConnection, Worker } from '@temporalio/worker';
 import * as activities from './activities/index.js';
-import { getEnvOrThrow } from '../utils/env.js';
 
 /**
  * Create and configure the Temporal worker
@@ -46,11 +45,4 @@ export async function createWorker(): Promise<Worker> {
   });
 
   return worker;
-}
-
-/**
- * Utility to get environment variable or use default
- */
-function getEnv(key: string, defaultValue: string): string {
-  return process.env[key] || defaultValue;
 }

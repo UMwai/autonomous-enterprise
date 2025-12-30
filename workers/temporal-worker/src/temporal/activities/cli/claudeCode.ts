@@ -5,7 +5,7 @@
  * Uses -p/--print for non-interactive execution with stream-json output.
  */
 
-import { execa, ExecaChildProcess } from 'execa';
+import { execa } from 'execa';
 import stripAnsi from 'strip-ansi';
 import type { AgentRunResult, FilePatch } from './harness.js';
 
@@ -210,7 +210,6 @@ export class ClaudeCodeAdapter {
       const commandsRun: string[] = [];
       const errors: AgentRunResult['errors'] = [];
       let cost: number | undefined;
-      let sessionId: string | undefined;
 
       // Process streaming output
       subprocess.stdout?.on('data', (data: Buffer) => {
@@ -223,8 +222,7 @@ export class ClaudeCodeAdapter {
             const event = JSON.parse(line) as ClaudeStreamEvent;
             onEvent(event);
 
-            // Extract metadata from events
-            if (event.session_id) sessionId = event.session_id;
+            // Extract metadata from events (session_id is tracked in event but not stored)
             if (event.cost_usd) cost = event.cost_usd;
 
             // Track tool uses

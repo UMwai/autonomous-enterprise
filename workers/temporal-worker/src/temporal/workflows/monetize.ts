@@ -18,7 +18,6 @@ const {
   createStripePrices,
   generatePaymentLink,
   setupStripeWebhook,
-  createCheckoutSession,
   configureBillingPortal,
 } = proxyActivities<typeof activities>({
   startToCloseTimeout: '5 minutes',
@@ -221,7 +220,6 @@ export async function setupMonetization(
 
   if (input.strategy.model === 'subscription' || input.strategy.model === 'freemium') {
     const billingPortal = await configureBillingPortal({
-      product_id: stripeProduct.id,
       return_url: input.deployment_url,
     });
 
