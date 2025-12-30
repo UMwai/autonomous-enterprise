@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ae_api.db.session import get_session
@@ -67,8 +67,9 @@ async def list_runs(
         query = query.where(Run.status == status)
 
     # Get total count
-    count_result = await session.execute(query)
-    total = len(count_result.scalars().all())
+    count_query = select(func.count()).select_from(query.subquery())
+    count_result = await session.execute(count_query)
+    total = count_result.scalar() or 0
 
     # Apply pagination
     query = query.offset((page - 1) * page_size).limit(page_size)
@@ -83,8 +84,8 @@ async def list_runs(
                 id=run.id,
                 project_id=run.project_id,
                 workflow_id=run.workflow_id,
-                run_type=run.run_type.value,
-                status=run.status.value,
+                run_type=run.run_type.value if hasattr(run.run_type, "value") else run.run_type,
+                status=run.status.value if hasattr(run.status, "value") else run.status,
                 tokens_used=run.tokens_used,
                 cost_incurred=run.cost_incurred,
                 error_message=run.error_message,
