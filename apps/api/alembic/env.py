@@ -7,10 +7,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from alembic import context
-
 # Import models so they're registered with Base.metadata
 from ae_api.db.models import Base  # noqa: F401
+from alembic import context
 
 # This is the Alembic Config object
 config = context.config

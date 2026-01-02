@@ -10,18 +10,11 @@ This module provides endpoints for the Genesis workflow:
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ae_api.db.session import get_session, engine
-from ae_api.rag.schemas import (
-    NicheCandidate as RagNicheCandidate,
-    ValidationReport as RagValidationReport,
-    ProductSpec as RagProductSpec,
-    TechnicalSpec as RagTechnicalSpec,
-    TaskGraph as RagTaskGraph,
-)
+from ae_api.db.session import engine, get_session
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -94,10 +87,11 @@ async def start_genesis(
     3. Product specification via Meta-PM architecture
     """
     # Import here to avoid circular imports
-    from ae_api.orchestration.temporal_client import TemporalClient
-    from ae_api.orchestration.ids import genesis_workflow_id
-    from ae_api.db.models import Project, ProjectStatus
     import hashlib
+
+    from ae_api.db.models import Project, ProjectStatus
+    from ae_api.orchestration.ids import genesis_workflow_id
+    from ae_api.orchestration.temporal_client import TemporalClient
 
     # Create project
     intent_hash = hashlib.sha256(request.intent.encode()).hexdigest()[:12]
@@ -224,8 +218,8 @@ async def ingest_trends(request: IngestTrendsRequest) -> IngestTrendsResponse:
     and stores embeddings in PGVector for RAG-based niche identification.
     """
     from ae_api.genesis.niche_identification import NicheIdentificationEngine, TrendDocument
-    from ae_api.genesis.sources.reddit import RedditSource, SAAS_SUBREDDITS
     from ae_api.genesis.sources.hackernews import HackerNewsSource
+    from ae_api.genesis.sources.reddit import SAAS_SUBREDDITS, RedditSource
 
     logger.info("ingesting_trends", intent=request.intent, sources=request.sources)
 
@@ -407,9 +401,9 @@ async def generate_spec(request: GenerateSpecRequest) -> GenerateSpecResponse:
     2. Architect Role -> TechnicalSpec (stack, architecture)
     3. ProjectManager Role -> TaskGraph (implementation tasks)
     """
-    from ae_api.genesis.niche_identification import NicheCandidate
-    from ae_api.genesis.validator_agent import ValidationReport, ValidationMetrics
     from ae_api.genesis.metapm.metagpt_runner import MetaGPTRunner
+    from ae_api.genesis.niche_identification import NicheCandidate
+    from ae_api.genesis.validator_agent import ValidationMetrics, ValidationReport
 
     logger.info("generating_spec", niche_name=request.niche.get("name"))
 

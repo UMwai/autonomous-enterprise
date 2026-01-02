@@ -1,7 +1,6 @@
 """Workflow ID generation utilities for stable, deterministic workflow identification."""
 
 import hashlib
-from typing import Optional
 
 
 def genesis_workflow_id(intent_hash: str) -> str:
@@ -74,7 +73,7 @@ def monetize_workflow_id(project_id: str) -> str:
     return f"monetize-{project_id}"
 
 
-def test_workflow_id(project_id: str, test_suite: Optional[str] = None) -> str:
+def test_workflow_id(project_id: str, test_suite: str | None = None) -> str:
     """
     Generate a deterministic workflow ID for Test workflow.
 

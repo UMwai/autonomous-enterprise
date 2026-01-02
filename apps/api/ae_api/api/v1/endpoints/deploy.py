@@ -6,9 +6,9 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from ae_api.config import get_settings, Settings
-from ae_api.services.vercel_service import VercelService, VercelDeployment
-from ae_api.services.netlify_service import NetlifyService, NetlifyDeployment
+from ae_api.config import Settings, get_settings
+from ae_api.services.netlify_service import NetlifyDeployment, NetlifyService
+from ae_api.services.vercel_service import VercelDeployment, VercelService
 
 logger = structlog.get_logger()
 router = APIRouter()
