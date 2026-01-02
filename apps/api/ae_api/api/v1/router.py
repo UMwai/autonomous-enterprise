@@ -2,7 +2,16 @@
 
 from fastapi import APIRouter
 
-from ae_api.api.v1.endpoints import approvals, billing, deploy, genesis, model_router, runs, safety, specs
+from ae_api.api.v1.endpoints import (
+    approvals,
+    billing,
+    deploy,
+    genesis,
+    model_router,
+    runs,
+    safety,
+    specs,
+)
 
 api_router = APIRouter()
 

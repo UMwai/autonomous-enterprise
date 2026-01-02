@@ -3,20 +3,20 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, String, Text, Float
+from sqlalchemy import JSON, Float, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ae_api.db.models.base import Base
 
 if TYPE_CHECKING:
-    from ae_api.db.models.run import Run
     from ae_api.db.models.artifact import Artifact
     from ae_api.db.models.genesis import (
         NicheCandidate,
         ProductSpec,
-        TechnicalSpec,
         TaskGraph,
+        TechnicalSpec,
     )
+    from ae_api.db.models.run import Run
 
 
 class ProjectStatus(str, Enum):

@@ -3,12 +3,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ae_api.db.session import get_session
 from ae_api.db.models import Run, RunStatus, RunType
+from ae_api.db.session import get_session
 
 router = APIRouter()
 
@@ -66,9 +66,18 @@ async def list_runs(
     if status:
         query = query.where(Run.status == status)
 
-    # Get total count
-    count_result = await session.execute(query)
-    total = len(count_result.scalars().all())
+    # Get total count using optimized count query
+    # Instead of fetching all records, we just count them in the DB
+    count_query = select(func.count()).select_from(Run)
+    if project_id:
+        count_query = count_query.where(Run.project_id == project_id)
+    if run_type:
+        count_query = count_query.where(Run.run_type == run_type)
+    if status:
+        count_query = count_query.where(Run.status == status)
+
+    count_result = await session.execute(count_query)
+    total = count_result.scalar_one()
 
     # Apply pagination
     query = query.offset((page - 1) * page_size).limit(page_size)
@@ -184,6 +193,6 @@ async def cancel_run(
         run.status = RunStatus.CANCELLED
         await session.commit()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to cancel: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to cancel: {e}") from e
 
     return {"status": "cancelled", "run_id": run_id}

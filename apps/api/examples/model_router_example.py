@@ -8,17 +8,17 @@ This script demonstrates how to:
 """
 
 import asyncio
-import os
-from pathlib import Path
 
 # Add parent directory to path for imports
 import sys
+from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ae_api.config import Settings
 from ae_api.economy.classifier import SemanticClassifier
+from ae_api.economy.providers import AnthropicProvider
 from ae_api.economy.router import ModelRouter, ModelTier
-from ae_api.economy.providers import AnthropicProvider, GoogleProvider, OpenAIProvider
 
 
 async def example_classification():
@@ -169,7 +169,7 @@ async def example_completion():
 
     # Route the task
     decision = await router.route(task)
-    print(f"\nRouting Decision:")
+    print("\nRouting Decision:")
     print(f"  Tier: {decision.tier.value}")
     print(f"  Model: {decision.model_id}")
     print(f"  Estimated Cost: ${decision.estimated_cost:.6f}")
@@ -183,7 +183,7 @@ async def example_completion():
         max_tokens=100,
     )
 
-    print(f"\nCompletion:")
+    print("\nCompletion:")
     print(f"  {completion.content}")
     print(f"\nActual Cost: ${completion.cost:.6f}")
     print(f"Usage: {completion.usage}")
@@ -204,10 +204,10 @@ async def example_tier_info():
     for tier_name, info in tier_info.items():
         print(f"\n{tier_name}:")
         print(f"  Default Model: {info['default_model']}")
-        print(f"  Available Models:")
+        print("  Available Models:")
         for model in info['models']:
             print(f"    - {model['provider']}: {model['model']}")
-        print(f"  Use Cases:")
+        print("  Use Cases:")
         for use_case in info['use_cases'][:3]:  # Show first 3
             print(f"    - {use_case}")
 

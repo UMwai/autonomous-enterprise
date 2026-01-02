@@ -3,12 +3,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ae_api.db.models import Artifact, ArtifactType, Project
 from ae_api.db.session import get_session
-from ae_api.db.models import Project, Artifact, ArtifactType
 
 router = APIRouter()
 

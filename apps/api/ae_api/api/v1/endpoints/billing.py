@@ -3,17 +3,16 @@
 from typing import Annotated
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
-from pydantic import BaseModel, Field, EmailStr
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from pydantic import BaseModel, EmailStr, Field
 
-from ae_api.config import get_settings, Settings
+from ae_api.config import Settings, get_settings
 from ae_api.services.stripe_service import (
-    StripeService,
-    StripeProduct,
-    StripePrice,
     PaymentLink,
+    StripePrice,
+    StripeProduct,
+    StripeService,
     Subscription,
-    WebhookEvent,
 )
 
 logger = structlog.get_logger()

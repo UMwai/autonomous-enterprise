@@ -1,7 +1,7 @@
 """Temporal client wrapper for Autonomous Enterprise workflows."""
 
 import asyncio
-from typing import Any, Optional
+from typing import Any
 
 from temporalio.client import (
     Client,
@@ -27,7 +27,7 @@ class TemporalClient:
     with proper error handling and type safety.
     """
 
-    def __init__(self, settings: Optional[Settings] = None):
+    def __init__(self, settings: Settings | None = None):
         """
         Initialize Temporal client wrapper.
 
@@ -35,7 +35,7 @@ class TemporalClient:
             settings: Optional settings instance (defaults to global settings)
         """
         self.settings = settings or get_settings()
-        self._client: Optional[Client] = None
+        self._client: Client | None = None
 
     async def connect(self) -> Client:
         """
@@ -51,7 +51,7 @@ class TemporalClient:
             return self._client
 
         # Parse TLS config if needed
-        tls_config: Optional[TLSConfig] = None
+        tls_config: TLSConfig | None = None
         # Add TLS support if certificates are configured in settings
         # tls_config = TLSConfig(...)
 
@@ -74,7 +74,7 @@ class TemporalClient:
         self,
         intent: str,
         budget: float,
-        workflow_id: Optional[str] = None,
+        workflow_id: str | None = None,
         timeout_seconds: int = 3600,
     ) -> WorkflowHandle:
         """
@@ -121,7 +121,7 @@ class TemporalClient:
         self,
         spec: dict[str, Any],
         project_id: str,
-        workflow_id: Optional[str] = None,
+        workflow_id: str | None = None,
         timeout_seconds: int = 7200,
     ) -> WorkflowHandle:
         """
@@ -167,7 +167,7 @@ class TemporalClient:
         project_id: str,
         version: str,
         deployment_target: str = "vercel",
-        workflow_id: Optional[str] = None,
+        workflow_id: str | None = None,
         timeout_seconds: int = 1800,
     ) -> WorkflowHandle:
         """
@@ -229,8 +229,8 @@ class TemporalClient:
             # Get workflow description for status
             desc = await handle.describe()
 
-            result: Optional[Any] = None
-            error: Optional[str] = None
+            result: Any | None = None
+            error: str | None = None
 
             # If workflow is completed, try to get result
             if desc.status == WorkflowExecutionStatus.COMPLETED:
@@ -262,7 +262,7 @@ class TemporalClient:
         self,
         workflow_id: str,
         signal: str,
-        data: Optional[dict[str, Any]] = None,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """
         Send a signal to a running workflow.
@@ -280,7 +280,7 @@ class TemporalClient:
         handle = client.get_workflow_handle(workflow_id)
         await handle.signal(signal, data or {})
 
-    async def cancel_workflow(self, workflow_id: str, reason: Optional[str] = None) -> None:
+    async def cancel_workflow(self, workflow_id: str, reason: str | None = None) -> None:
         """
         Cancel a running workflow.
 
@@ -300,7 +300,7 @@ class TemporalClient:
         self,
         workflow_id: str,
         query: str,
-        args: Optional[list[Any]] = None,
+        args: list[Any] | None = None,
     ) -> Any:
         """
         Query a running workflow for intermediate state.
@@ -324,7 +324,7 @@ class TemporalClient:
     async def wait_for_workflow(
         self,
         workflow_id: str,
-        timeout_seconds: Optional[int] = None,
+        timeout_seconds: int | None = None,
     ) -> Any:
         """
         Wait for a workflow to complete and return its result.
@@ -354,7 +354,7 @@ class TemporalClient:
 
     async def list_workflows(
         self,
-        workflow_type: Optional[str] = None,
+        workflow_type: str | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         """

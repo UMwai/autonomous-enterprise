@@ -3,7 +3,7 @@
 import pytest
 from redis.asyncio import Redis
 
-from ae_api.safety import ActionType, BudgetTracker, PolicyGate, Redactor, SecretPattern
+from ae_api.safety import ActionType, BudgetTracker, PolicyGate, Redactor
 
 
 class TestPolicyGate:
