@@ -32,6 +32,7 @@ class Artifact(Base):
 
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
     artifact_type: Mapped[ArtifactType] = mapped_column(String(50), nullable=False)

@@ -42,6 +42,7 @@ class Project(Base):
     status: Mapped[ProjectStatus] = mapped_column(
         String(50),
         default=ProjectStatus.IDEATION,
+        index=True,  # Indexed for faster status filtering
         nullable=False,
     )
 
