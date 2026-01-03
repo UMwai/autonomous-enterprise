@@ -36,6 +36,7 @@ class NicheCandidate(Base):
     # Foreign key
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
 
@@ -60,6 +61,7 @@ class NicheCandidate(Base):
     status: Mapped[NicheStatus] = mapped_column(
         String(50),
         default=NicheStatus.IDENTIFIED,
+        index=True,  # Indexed for faster status filtering
         nullable=False,
     )
     validation_score: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -88,10 +90,12 @@ class ProductSpec(Base):
     # Foreign keys
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
     niche_id: Mapped[str | None] = mapped_column(
         ForeignKey("niche_candidates.id", ondelete="SET NULL"),
+        index=True,  # Indexed for faster lookups by niche
         nullable=True,
     )
 
@@ -130,10 +134,12 @@ class TechnicalSpec(Base):
     # Foreign keys
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
     product_spec_id: Mapped[str | None] = mapped_column(
         ForeignKey("product_specs.id", ondelete="SET NULL"),
+        index=True,  # Indexed for faster lookups by product spec
         nullable=True,
     )
 
@@ -175,10 +181,12 @@ class TaskGraph(Base):
     # Foreign keys
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
     technical_spec_id: Mapped[str | None] = mapped_column(
         ForeignKey("technical_specs.id", ondelete="SET NULL"),
+        index=True,  # Indexed for faster lookups by tech spec
         nullable=True,
     )
 
