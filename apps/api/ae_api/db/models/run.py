@@ -41,6 +41,7 @@ class Run(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     workflow_id: Mapped[str] = mapped_column(String(255), nullable=False)
     run_type: Mapped[RunType] = mapped_column(String(50), nullable=False)
