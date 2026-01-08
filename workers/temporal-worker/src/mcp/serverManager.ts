@@ -10,7 +10,6 @@ import pino from 'pino';
 import { MCPClient } from './client.js';
 import { MCP_SERVERS, getServerConfig } from './servers.config.js';
 import type {
-  MCPServerConfig,
   ServerInstance,
   Tool,
   ServerHealth,

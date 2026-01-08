@@ -16,8 +16,6 @@ import { BudgetClient } from '../safety/budgets.js';
 import type {
   AgentIdentity,
   ToolCall,
-  PermissionPolicy,
-  ToolPermission,
 } from './types.js';
 
 const logger = pino({ name: 'mcp-permissions' });
@@ -248,7 +246,7 @@ export async function checkPermissionDetailed(
  */
 async function checkBudgetLimit(
   agent: AgentIdentity,
-  toolCall: ToolCall,
+  _toolCall: ToolCall,
   limit: { amount: number; currency: string }
 ): Promise<PermissionCheckResult> {
   try {
@@ -337,8 +335,8 @@ export async function requestApproval(
       'Requesting human approval for MCP tool call'
     );
 
-    // Request approval
-    const approval = await approvalClient.requestApproval({
+    // Request approval (we await to ensure it's created before polling)
+    await approvalClient.requestApproval({
       action_id: actionId,
       action_type: 'mcp_tool_call',
       description: `Call ${toolCall.serverId}.${toolCall.toolName}`,
