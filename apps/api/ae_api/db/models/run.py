@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, ForeignKey, String, Text, Float
+from sqlalchemy import JSON, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ae_api.db.models.base import Base

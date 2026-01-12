@@ -1,17 +1,17 @@
 """Tests for Model Router (Cognitive Economy) system."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from ae_api.config import Settings
 from ae_api.economy.classifier import (
+    ClassificationResult,
     SemanticClassifier,
     TaskComplexity,
     TaskRisk,
-    ClassificationResult,
 )
-from ae_api.economy.router import ModelRouter, ModelTier, RoutingDecision
-from ae_api.economy.providers.base import CompletionResponse
+from ae_api.economy.router import ModelRouter, ModelTier
 
 
 @pytest.fixture

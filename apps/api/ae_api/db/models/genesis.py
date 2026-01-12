@@ -6,7 +6,7 @@ Models for storing niche candidates, product specifications, and task graphs.
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, String, Text, Float, Integer, ForeignKey, Boolean
+from sqlalchemy import JSON, Boolean, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ae_api.db.models.base import Base

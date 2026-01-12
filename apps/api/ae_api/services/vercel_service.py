@@ -1,11 +1,8 @@
 """Vercel deployment service."""
 
 import asyncio
-import json
-import tarfile
 from datetime import datetime
 from enum import Enum
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 

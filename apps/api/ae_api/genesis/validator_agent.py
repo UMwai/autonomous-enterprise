@@ -10,7 +10,6 @@ This module provides capabilities for validating niche candidates through:
 
 import asyncio
 import re
-from typing import Any
 
 import httpx
 import structlog
