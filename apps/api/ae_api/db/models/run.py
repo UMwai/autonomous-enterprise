@@ -40,6 +40,7 @@ class Run(Base):
 
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
+        index=True,  # Indexed for faster lookups by project
         nullable=False,
     )
     workflow_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -47,6 +48,7 @@ class Run(Base):
     status: Mapped[RunStatus] = mapped_column(
         String(50),
         default=RunStatus.PENDING,
+        index=True,  # Indexed for faster status filtering
         nullable=False,
     )
 
