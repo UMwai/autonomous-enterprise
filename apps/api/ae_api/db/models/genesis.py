@@ -37,6 +37,7 @@ class NicheCandidate(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     # Basic info
@@ -89,10 +90,12 @@ class ProductSpec(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     niche_id: Mapped[str | None] = mapped_column(
         ForeignKey("niche_candidates.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Product info
@@ -131,10 +134,12 @@ class TechnicalSpec(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     product_spec_id: Mapped[str | None] = mapped_column(
         ForeignKey("product_specs.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Tech stack
@@ -176,10 +181,12 @@ class TaskGraph(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     technical_spec_id: Mapped[str | None] = mapped_column(
         ForeignKey("technical_specs.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Tasks
