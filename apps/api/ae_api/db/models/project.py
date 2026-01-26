@@ -43,6 +43,7 @@ class Project(Base):
         String(50),
         default=ProjectStatus.IDEATION,
         nullable=False,
+        index=True,
     )
 
     # Niche/Market data
