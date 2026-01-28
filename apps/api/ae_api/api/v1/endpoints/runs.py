@@ -3,12 +3,12 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
-from sqlalchemy import select
+from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ae_api.db.session import get_session
 from ae_api.db.models import Run, RunStatus, RunType
+from ae_api.db.session import get_session
 
 router = APIRouter()
 
@@ -57,20 +57,28 @@ async def list_runs(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> RunListResponse:
     """List runs with optional filtering."""
-    query = select(Run)
-
+    # Build filters
+    filters = []
     if project_id:
-        query = query.where(Run.project_id == project_id)
+        filters.append(Run.project_id == project_id)
     if run_type:
-        query = query.where(Run.run_type == run_type)
+        filters.append(Run.run_type == run_type)
     if status:
-        query = query.where(Run.status == status)
+        filters.append(Run.status == status)
 
     # Get total count
-    count_result = await session.execute(query)
-    total = len(count_result.scalars().all())
+    count_query = select(func.count()).select_from(Run)
+    if filters:
+        count_query = count_query.where(*filters)
 
-    # Apply pagination
+    count_result = await session.execute(count_query)
+    total = count_result.scalar() or 0
+
+    # Get paginated runs
+    query = select(Run)
+    if filters:
+        query = query.where(*filters)
+
     query = query.offset((page - 1) * page_size).limit(page_size)
     query = query.order_by(Run.created_at.desc())
 
