@@ -3,7 +3,7 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, ForeignKey, String, Text, Float
+from sqlalchemy import JSON, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ae_api.db.models.base import Base
@@ -41,8 +41,9 @@ class Run(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("projects.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
-    workflow_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    workflow_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     run_type: Mapped[RunType] = mapped_column(String(50), nullable=False)
     status: Mapped[RunStatus] = mapped_column(
         String(50),

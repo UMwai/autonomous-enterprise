@@ -1,0 +1,3 @@
+## 2026-01-30 - Database Index Drift
+**Learning:** I discovered a significant drift between SQLAlchemy models and the actual database schema (defined in `0001_initial_schema.py`). Several indexes (e.g., `project_id`) were created manually in the initial migration but were missing from the model definitions. Also, `Artifact` was missing the `run_id` column entirely in the model.
+**Action:** Always cross-reference `alembic/versions/*.py` with `db/models/*.py` before assuming the model reflects the DB state. When adding indexes, check if they already exist in old migrations to avoid "relation already exists" errors or confusion.
