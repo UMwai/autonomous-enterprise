@@ -2,7 +2,7 @@
 
 from ae_api.db.models.base import Base
 from ae_api.db.models.project import Project, ProjectStatus
-from ae_api.db.models.run import Run, RunStatus
+from ae_api.db.models.run import Run, RunStatus, RunType
 from ae_api.db.models.artifact import Artifact, ArtifactType
 from ae_api.db.models.genesis import (
     NicheCandidate,
@@ -19,6 +19,7 @@ __all__ = [
     "ProjectStatus",
     "Run",
     "RunStatus",
+    "RunType",
     "Artifact",
     "ArtifactType",
     # Genesis models
